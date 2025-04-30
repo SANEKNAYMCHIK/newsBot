@@ -1,7 +1,7 @@
 package parser
 
 import (
-	"fmt"
+	"log"
 	"sync"
 	"time"
 
@@ -9,7 +9,7 @@ import (
 	"github.com/mmcdole/gofeed"
 )
 
-const AMOUNT_NEWS int = 3
+const AMOUNT_NEWS int = 5
 
 func Parse(url string, wg *sync.WaitGroup, ch chan<- services.NewsItem) {
 	defer wg.Done()
@@ -17,7 +17,7 @@ func Parse(url string, wg *sync.WaitGroup, ch chan<- services.NewsItem) {
 	fp := gofeed.NewParser()
 	feed, err := fp.ParseURL(url)
 	if err != nil {
-		fmt.Printf("Error of parsing this url: %s with this error: %v", url, err)
+		log.Printf("Error of parsing this url: %s with this error: %v", url, err)
 	}
 	for idx, item := range feed.Items {
 		if idx == AMOUNT_NEWS {
