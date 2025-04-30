@@ -2,13 +2,24 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"sync"
 
 	"github.com/SANEKNAYMCHIK/newsBot/internal/app/parser"
 	"github.com/SANEKNAYMCHIK/newsBot/internal/services"
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/joho/godotenv"
 )
 
 func main() {
+	godotenv.Load()
+	token := os.Getenv("TOKEN")
+	bot, err := tgbotapi.NewBotAPI(token)
+	if err != nil {
+		fmt.Printf("Some errors with tgbot: %s", err)
+		panic(err)
+	}
+	fmt.Println(bot)
 	sources := []string{
 		"https://habr.com/ru/rss/articles/",
 		"https://russian.rt.com/rss",
