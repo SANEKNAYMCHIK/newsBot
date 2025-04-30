@@ -9,18 +9,18 @@ import (
 	"github.com/joho/godotenv"
 )
 
-var numericKeyboard = tgbotapi.NewInlineKeyboardMarkup(
-	tgbotapi.NewInlineKeyboardRow(
-		tgbotapi.NewInlineKeyboardButtonData("All", "1"),
+var numericKeyboard = tgbotapi.NewReplyKeyboard(
+	tgbotapi.NewKeyboardButtonRow(
+		tgbotapi.NewKeyboardButton("All"),
 	),
-	tgbotapi.NewInlineKeyboardRow(
-		tgbotapi.NewInlineKeyboardButtonData("Research swtch", "2"),
-		tgbotapi.NewInlineKeyboardButtonData("Habr", "3"),
+	tgbotapi.NewKeyboardButtonRow(
+		tgbotapi.NewKeyboardButton("Research swtch"),
+		tgbotapi.NewKeyboardButton("Habr"),
 	),
-	tgbotapi.NewInlineKeyboardRow(
-		tgbotapi.NewInlineKeyboardButtonData("Russia Today", "4"),
-		tgbotapi.NewInlineKeyboardButtonData("Lenta ru", "5"),
-		tgbotapi.NewInlineKeyboardButtonData("New York Times", "6"),
+	tgbotapi.NewKeyboardButtonRow(
+		tgbotapi.NewKeyboardButton("Russia Today"),
+		tgbotapi.NewKeyboardButton("Lenta ru"),
+		tgbotapi.NewKeyboardButton("New York Times"),
 	),
 )
 
@@ -71,27 +71,46 @@ func main() {
 
 	for update := range updates {
 		if update.Message != nil { // If we got a message
-			msg := tgbotapi.NewMessage(update.Message.Chat.ID, update.Message.Text)
 
 			fmt.Println(update.Message.Command())
 			fmt.Println(update.Message.Text)
 
-			if update.Message.Command() == "menu" {
-				keyb := tgbotapi.InlineKeyboardMarkup{}
-				var numkey []tgbotapi.InlineKeyboardButton
-				numkey = append(numkey, tgbotapi.NewInlineKeyboardButtonData("2", "2"))
-				keyb.InlineKeyboard = append(keyb.InlineKeyboard, numkey)
-				numkey = numkey[:0]
-				numkey = append(numkey, tgbotapi.NewInlineKeyboardButtonData("3", "3"))
-				keyb.InlineKeyboard = append(keyb.InlineKeyboard, numkey)
-				msg.ReplyMarkup = numericKeyboard
+			if update.Message.IsCommand() {
+				fmt.Printf("#####################:%d:\n", 1)
+				if update.Message.Command() == "menu" {
+					msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Choose your selection")
+					msg.ReplyMarkup = numericKeyboard
+					bot.Send(msg)
+				}
+			} else {
+				switch update.Message.Text {
+				case "All":
+					// print all news
+				case "Research swtch":
+					// only research swtch
+				case "Habr":
+					// only habr news
+				case "Russia Today":
+					// only RT
+				case "Lenta ru":
+					// only Lenta ru news
+				case "New York Times":
+					// only NYT
+				default:
+					fmt.Printf("#####################:%d:\n", 2)
+					ansText := "Wow, I'm sorry," +
+						" but I was created only for sending news" +
+						" not for conversation:("
+					msg := tgbotapi.NewMessage(update.Message.Chat.ID, ansText)
+					bot.Send(msg)
+				}
 			}
+
 			// log.Printf("[%s] %s", update.Message.From.UserName, update.Message.Text)
 
 			// msg := tgbotapi.NewMessage(update.Message.Chat.ID, update.Message.Text)
 			// msg.ReplyToMessageID = update.Message.MessageID
 
-			bot.Send(msg)
 		}
 	}
 }
