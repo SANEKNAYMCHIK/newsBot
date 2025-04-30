@@ -9,6 +9,11 @@ type NewsItem struct {
 	Description string
 }
 
-func NewNewsItem() *NewsItem {
-	return &NewsItem{}
+func NewNewsItem(title string, link string, date time.Time, descr string) *NewsItem {
+	return &NewsItem{
+		Title:       title,
+		Link:        link,
+		Date:        date,
+		Description: descr,
+	}
 }
