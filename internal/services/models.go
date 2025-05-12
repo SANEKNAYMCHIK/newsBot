@@ -11,7 +11,7 @@ type NewsItem struct {
 }
 
 func NewNewsItem(title string, link string, date time.Time, descr string) *NewsItem {
-	var site string =
+	var site string = getNameSite(link)
 	return &NewsItem{
 		Title:       title,
 		Link:        link,

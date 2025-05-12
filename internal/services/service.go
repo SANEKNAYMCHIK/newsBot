@@ -1,5 +1,9 @@
 package services
 
+import (
+	"regexp"
+)
+
 var namesRelation = map[string]string{
 	"habr":     "Habr",
 	"russian":  "Russia-Today",
@@ -8,6 +12,8 @@ var namesRelation = map[string]string{
 	"research": "Research-swtch",
 }
 
-func getNameSite(url string) {
-
+func getNameSite(url string) string {
+	re := regexp.MustCompile(`//(?:www\.)?([^./]+)`)
+	match := re.FindStringSubmatch(url)
+	return namesRelation[match[1]]
 }
