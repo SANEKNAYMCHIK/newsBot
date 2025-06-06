@@ -33,10 +33,6 @@ func setCommands(bot *tgbotapi.BotAPI) {
 func showMainMenu(bot *tgbotapi.BotAPI, chatID int64) {
 	menu := tgbotapi.NewReplyKeyboard(
 		tgbotapi.NewKeyboardButtonRow(
-			tgbotapi.NewKeyboardButton("All"),
-			tgbotapi.NewKeyboardButton("Close keyboard"),
-		),
-		tgbotapi.NewKeyboardButtonRow(
 			tgbotapi.NewKeyboardButton("Research-swtch"),
 			tgbotapi.NewKeyboardButton("Habr"),
 		),
@@ -44,6 +40,10 @@ func showMainMenu(bot *tgbotapi.BotAPI, chatID int64) {
 			tgbotapi.NewKeyboardButton("Russia-Today"),
 			tgbotapi.NewKeyboardButton("Lenta-ru"),
 			tgbotapi.NewKeyboardButton("New-York-Times"),
+		),
+		tgbotapi.NewKeyboardButtonRow(
+			tgbotapi.NewKeyboardButton("Close keyboard"),
+			tgbotapi.NewKeyboardButton("Update news"),
 		),
 	)
 	menu.ResizeKeyboard = true
@@ -60,6 +60,11 @@ func hideKeyboard(bot *tgbotapi.BotAPI, chatID int64, msgID int) {
 	bot.Send(msg)
 }
 
+type NewsStorage struct {
+	mu   sync.RWMutex
+	news map[string][]services.NewsItem
+}
+
 func main() {
 	sources := []string{
 		"https://habr.com/ru/rss/articles/",
@@ -68,25 +73,10 @@ func main() {
 		"https://nytimes.com/services/xml/rss/nyt/World.xml",
 		"https://research.swtch.com/feed.atom",
 	}
-	var wg sync.WaitGroup
-	// channel for keeping news
-	ch := make(chan services.NewsItem, 100)
 
-	for _, url := range sources {
-		wg.Add(1)
-		go parser.Parse(url, &wg, ch)
+	storage := &NewsStorage{
+		news: parser.ParseAllNews(sources),
 	}
-	go func() {
-		wg.Wait()
-		close(ch)
-	}()
-
-	newsVals := make(map[string][]services.NewsItem)
-
-	for item := range ch {
-		newsVals[item.Website] = append(newsVals[item.Website], item)
-	}
-
 	godotenv.Load()
 	token := os.Getenv("TOKEN")
 	bot, err := tgbotapi.NewBotAPI(token)
@@ -96,7 +86,6 @@ func main() {
 		panic(err)
 	}
 
-	// bot.Debug = true
 	setCommands(bot)
 
 	log.Printf("Authorized on account %s", bot.Self.UserName)
@@ -105,7 +94,6 @@ func main() {
 	updates := bot.GetUpdatesChan(u)
 	for update := range updates {
 		if update.Message != nil {
-
 			if update.Message.IsCommand() {
 				switch update.Message.Command() {
 				case "news":
@@ -118,88 +106,35 @@ func main() {
 				}
 			} else {
 				switch update.Message.Text {
-				case "All":
-					for j := range newsVals {
-						for i := 0; i < len(newsVals[j]); i++ {
-							ansText := ""
-							// fmt.Println(t.Format("2006-01-02 15:04:05"))
-							// newsVals[update.Message.Text][i].Date.Format("2006-01-02 15:04:05")
-							ansText += newsVals[j][i].Date.String() + "\n"
-							ansText += newsVals[j][i].Title + "\n"
-							ansText += newsVals[j][i].Description + "\n"
-							ansText += newsVals[j][i].Link
-							msg := tgbotapi.NewMessage(update.Message.Chat.ID, ansText)
-							bot.Send(msg)
-							time.Sleep(1 * time.Second)
-						}
-					}
-				case "Research-swtch":
-					for i := 0; i < len(newsVals[update.Message.Text]); i++ {
+				case "Research-swtch", "Habr", "Russia-Today", "Lenta-ru", "New-York-Times":
+					storage.mu.RLock()
+					newsVals := storage.news[update.Message.Text]
+					storage.mu.RUnlock()
+					for i := 0; i < len(newsVals); i++ {
 						ansText := ""
 						// fmt.Println(t.Format("2006-01-02 15:04:05"))
 						// newsVals[update.Message.Text][i].Date.Format("2006-01-02 15:04:05")
-						ansText += newsVals[update.Message.Text][i].Date.String() + "\n"
-						ansText += newsVals[update.Message.Text][i].Title + "\n"
-						ansText += newsVals[update.Message.Text][i].Description + "\n"
-						ansText += newsVals[update.Message.Text][i].Link
-						msg := tgbotapi.NewMessage(update.Message.Chat.ID, ansText)
-						bot.Send(msg)
-						time.Sleep(1 * time.Second)
-					}
-				case "Habr":
-					for i := 0; i < len(newsVals[update.Message.Text]); i++ {
-						ansText := ""
-						// fmt.Println(t.Format("2006-01-02 15:04:05"))
-						// newsVals[update.Message.Text][i].Date.Format("2006-01-02 15:04:05")
-						ansText += newsVals[update.Message.Text][i].Date.String() + "\n"
-						ansText += newsVals[update.Message.Text][i].Title + "\n"
-						ansText += newsVals[update.Message.Text][i].Description + "\n"
-						ansText += newsVals[update.Message.Text][i].Link
-						msg := tgbotapi.NewMessage(update.Message.Chat.ID, ansText)
-						bot.Send(msg)
-						time.Sleep(1 * time.Second)
-					}
-				case "Russia-Today":
-					for i := 0; i < len(newsVals[update.Message.Text]); i++ {
-						ansText := ""
-						// fmt.Println(t.Format("2006-01-02 15:04:05"))
-						// newsVals[update.Message.Text][i].Date.Format("2006-01-02 15:04:05")
-						ansText += newsVals[update.Message.Text][i].Date.String() + "\n"
-						ansText += newsVals[update.Message.Text][i].Title + "\n"
-						ansText += newsVals[update.Message.Text][i].Description + "\n"
-						ansText += newsVals[update.Message.Text][i].Link
-						msg := tgbotapi.NewMessage(update.Message.Chat.ID, ansText)
-						bot.Send(msg)
-						time.Sleep(1 * time.Second)
-					}
-				case "Lenta-ru":
-					for i := 0; i < len(newsVals[update.Message.Text]); i++ {
-						ansText := ""
-						// fmt.Println(t.Format("2006-01-02 15:04:05"))
-						// newsVals[update.Message.Text][i].Date.Format("2006-01-02 15:04:05")
-						ansText += newsVals[update.Message.Text][i].Date.String() + "\n"
-						ansText += newsVals[update.Message.Text][i].Title + "\n"
-						ansText += newsVals[update.Message.Text][i].Description + "\n"
-						ansText += newsVals[update.Message.Text][i].Link
-						msg := tgbotapi.NewMessage(update.Message.Chat.ID, ansText)
-						bot.Send(msg)
-						time.Sleep(1 * time.Second)
-					}
-				case "New-York-Times":
-					for i := 0; i < len(newsVals[update.Message.Text]); i++ {
-						ansText := ""
-						// fmt.Println(t.Format("2006-01-02 15:04:05"))
-						// newsVals[update.Message.Text][i].Date.Format("2006-01-02 15:04:05")
-						ansText += newsVals[update.Message.Text][i].Date.String() + "\n"
-						ansText += newsVals[update.Message.Text][i].Title + "\n"
-						ansText += newsVals[update.Message.Text][i].Description + "\n"
-						ansText += newsVals[update.Message.Text][i].Link
+						ansText += newsVals[i].Date.String() + "\n"
+						ansText += newsVals[i].Title + "\n"
+						ansText += newsVals[i].Description + "\n"
+						ansText += newsVals[i].Link
 						msg := tgbotapi.NewMessage(update.Message.Chat.ID, ansText)
 						bot.Send(msg)
 						time.Sleep(1 * time.Second)
 					}
 				case "Close keyboard":
 					hideKeyboard(bot, update.Message.Chat.ID, update.Message.MessageID)
+				case "Update news":
+					go func(chatID int64) {
+						msg := tgbotapi.NewMessage(chatID, "Обновляем новости")
+						bot.Send(msg)
+						latestNews := parser.ParseAllNews(sources)
+						storage.mu.Lock()
+						storage.news = latestNews
+						storage.mu.Unlock()
+						msg = tgbotapi.NewMessage(chatID, "Новости обновлены")
+						bot.Send(msg)
+					}(update.Message.Chat.ID)
 				default:
 					ansText := "Wow, I'm sorry," +
 						" but I was created only for sending news" +

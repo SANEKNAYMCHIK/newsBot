@@ -8,7 +8,7 @@ import (
 	"github.com/mmcdole/gofeed"
 )
 
-const AMOUNT_NEWS int = 5
+const AMOUNT_NEWS int = 3
 
 func Parse(url string, wg *sync.WaitGroup, ch chan<- services.NewsItem) {
 	defer wg.Done()
@@ -24,4 +24,22 @@ func Parse(url string, wg *sync.WaitGroup, ch chan<- services.NewsItem) {
 		}
 		ch <- *services.NewNewsItem(item.Title, item.Link, *item.PublishedParsed, item.Description)
 	}
+}
+
+func ParseAllNews(sources []string) map[string][]services.NewsItem {
+	var wg sync.WaitGroup
+	ch := make(chan services.NewsItem, 100)
+	for _, url := range sources {
+		wg.Add(1)
+		go Parse(url, &wg, ch)
+	}
+	go func() {
+		wg.Wait()
+		close(ch)
+	}()
+	newsVals := make(map[string][]services.NewsItem)
+	for item := range ch {
+		newsVals[item.Website] = append(newsVals[item.Website], item)
+	}
+	return newsVals
 }
