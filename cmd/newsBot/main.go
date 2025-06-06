@@ -93,56 +93,58 @@ func main() {
 	u.Timeout = 60
 	updates := bot.GetUpdatesChan(u)
 	for update := range updates {
-		if update.Message != nil {
-			if update.Message.IsCommand() {
-				switch update.Message.Command() {
-				case "news":
-					showMainMenu(bot, update.Message.Chat.ID)
-				case "start":
-					ansText := "Hi! I can help to you with the latest news\n" +
-						"Click on a news button."
-					msg := tgbotapi.NewMessage(update.Message.Chat.ID, ansText)
-					bot.Send(msg)
-				}
-			} else {
-				switch update.Message.Text {
-				case "Research-swtch", "Habr", "Russia-Today", "Lenta-ru", "New-York-Times":
-					storage.mu.RLock()
-					newsVals := storage.news[update.Message.Text]
-					storage.mu.RUnlock()
-					for i := 0; i < len(newsVals); i++ {
-						ansText := ""
-						// fmt.Println(t.Format("2006-01-02 15:04:05"))
-						// newsVals[update.Message.Text][i].Date.Format("2006-01-02 15:04:05")
-						ansText += newsVals[i].Date.String() + "\n"
-						ansText += newsVals[i].Title + "\n"
-						ansText += newsVals[i].Description + "\n"
-						ansText += newsVals[i].Link
+		go func(update tgbotapi.Update) {
+			if update.Message != nil {
+				if update.Message.IsCommand() {
+					switch update.Message.Command() {
+					case "news":
+						showMainMenu(bot, update.Message.Chat.ID)
+					case "start":
+						ansText := "Hi! I can help to you with the latest news\n" +
+							"Click on a news button."
 						msg := tgbotapi.NewMessage(update.Message.Chat.ID, ansText)
 						bot.Send(msg)
-						time.Sleep(1 * time.Second)
 					}
-				case "Close keyboard":
-					hideKeyboard(bot, update.Message.Chat.ID, update.Message.MessageID)
-				case "Update news":
-					go func(chatID int64) {
-						msg := tgbotapi.NewMessage(chatID, "Обновляем новости")
+				} else {
+					switch update.Message.Text {
+					case "Research-swtch", "Habr", "Russia-Today", "Lenta-ru", "New-York-Times":
+						storage.mu.RLock()
+						newsVals := storage.news[update.Message.Text]
+						storage.mu.RUnlock()
+						for i := 0; i < len(newsVals); i++ {
+							ansText := ""
+							// fmt.Println(t.Format("2006-01-02 15:04:05"))
+							// newsVals[update.Message.Text][i].Date.Format("2006-01-02 15:04:05")
+							ansText += newsVals[i].Date.String() + "\n"
+							ansText += newsVals[i].Title + "\n"
+							ansText += newsVals[i].Description + "\n"
+							ansText += newsVals[i].Link
+							msg := tgbotapi.NewMessage(update.Message.Chat.ID, ansText)
+							bot.Send(msg)
+							time.Sleep(1 * time.Second)
+						}
+					case "Close keyboard":
+						hideKeyboard(bot, update.Message.Chat.ID, update.Message.MessageID)
+					case "Update news":
+						go func(chatID int64) {
+							msg := tgbotapi.NewMessage(chatID, "Обновляем новости")
+							bot.Send(msg)
+							latestNews := parser.ParseAllNews(sources)
+							storage.mu.Lock()
+							storage.news = latestNews
+							storage.mu.Unlock()
+							msg = tgbotapi.NewMessage(chatID, "Новости обновлены")
+							bot.Send(msg)
+						}(update.Message.Chat.ID)
+					default:
+						ansText := "Wow, I'm sorry," +
+							" but I was created only for sending news" +
+							" not for conversation:("
+						msg := tgbotapi.NewMessage(update.Message.Chat.ID, ansText)
 						bot.Send(msg)
-						latestNews := parser.ParseAllNews(sources)
-						storage.mu.Lock()
-						storage.news = latestNews
-						storage.mu.Unlock()
-						msg = tgbotapi.NewMessage(chatID, "Новости обновлены")
-						bot.Send(msg)
-					}(update.Message.Chat.ID)
-				default:
-					ansText := "Wow, I'm sorry," +
-						" but I was created only for sending news" +
-						" not for conversation:("
-					msg := tgbotapi.NewMessage(update.Message.Chat.ID, ansText)
-					bot.Send(msg)
+					}
 				}
 			}
-		}
+		}(update)
 	}
 }
