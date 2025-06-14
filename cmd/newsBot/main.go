@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"os"
 	"sync"
@@ -10,6 +11,12 @@ import (
 	"github.com/SANEKNAYMCHIK/newsBot/internal/services"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/joho/godotenv"
+
+	_ "net/http/pprof"
+
+	"github.com/SANEKNAYMCHIK/newsBot/proto/news"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 func setCommands(bot *tgbotapi.BotAPI) {
@@ -65,7 +72,45 @@ type NewsStorage struct {
 	news map[string][]services.NewsItem
 }
 
+func getNewsFromParser(sources []string) (*map[string]*news.NewsItemList, error) {
+	// conn, err := grpc.NewClient("newsParser:50051", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient("localhost:50051", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Close()
+	client := news.NewNewsParserClient(conn)
+	resp, err := client.GetNews(context.Background(), &news.NewsRequest{Sources: sources})
+	if err != nil {
+		return nil, err
+	}
+	return &resp.Data, nil
+}
+
+func convertProtoToServices(data *map[string]*news.NewsItemList) map[string][]services.NewsItem {
+	result := make(map[string][]services.NewsItem)
+	for name, itemList := range *data {
+		for _, item := range itemList.Items {
+			time, err := time.Parse("2006-01-02 15:04:05", item.Date)
+			if err != nil {
+				log.Printf("Error parsing date %s for item %s: %v", item.Date, item.Title, err)
+			}
+			result[name] = append(result[name], services.NewsItem{
+				Title:       item.Title,
+				Link:        item.Link,
+				Date:        time,
+				Description: item.Description,
+				Website:     item.Website,
+			})
+		}
+	}
+	return result
+}
+
 func main() {
+	// go func() {
+	// 	log.Println(http.ListenAndServe("localhost:6060", nil))
+	// }()
 	sources := []string{
 		"https://habr.com/ru/rss/articles/",
 		"https://russian.rt.com/rss",
@@ -74,9 +119,18 @@ func main() {
 		"https://research.swtch.com/feed.atom",
 	}
 
-	storage := &NewsStorage{
-		news: parser.ParseAllNews(sources),
+	// storage := &NewsStorage{
+	// 	news: parser.ParseAllNews(sources),
+	// }
+	newsData, err := getNewsFromParser(sources)
+	if err != nil {
+		log.Fatal("Failed to fetch news from parser")
+
 	}
+	storage := &NewsStorage{
+		news: convertProtoToServices(newsData),
+	}
+
 	godotenv.Load()
 	token := os.Getenv("TOKEN")
 	bot, err := tgbotapi.NewBotAPI(token)

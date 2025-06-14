@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+package news;
+
+option go_package = "./proto/news";
+
+service NewsParser {
+    rpc GetNews (NewsRequest) returns (NewsResponse);
+}
+
+message NewsRequest {
+    repeated string sources = 1;
+}
+
+message NewsItem {
+    string title = 1;
+    string link = 2;
+    string date = 3;
+    string description = 4;
+    string website = 5;
+}
+
+message NewsItemList {
+    repeated NewsItem items = 1;
+}
+
+message NewsResponse {
+    map<string, NewsItemList> data = 1;
+}
