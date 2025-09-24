@@ -57,14 +57,23 @@ func showMainMenu(bot *tgbotapi.BotAPI, chatID int64) {
 
 	msg := tgbotapi.NewMessage(chatID, "Выберите портал:")
 	msg.ReplyMarkup = menu
-	bot.Send(msg)
+	_, err := bot.Send(msg)
+	if err != nil {
+		log.Printf("There are some problems with sending message: %v", err)
+	}
 }
 
 func hideKeyboard(bot *tgbotapi.BotAPI, chatID int64, msgID int) {
-	bot.Send(tgbotapi.NewDeleteMessage(chatID, msgID))
+	_, err := bot.Send(tgbotapi.NewDeleteMessage(chatID, msgID))
+	if err != nil {
+		log.Printf("There are some problems with sending message: %v", err)
+	}
 	msg := tgbotapi.NewMessage(chatID, "Keyboard is closed")
 	msg.ReplyMarkup = tgbotapi.ReplyKeyboardRemove{RemoveKeyboard: true}
-	bot.Send(msg)
+	_, err = bot.Send(msg)
+	if err != nil {
+		log.Printf("There are some problems with sending message: %v", err)
+	}
 }
 
 type NewsStorage struct {
@@ -73,7 +82,6 @@ type NewsStorage struct {
 }
 
 func getNewsFromParser(sources []string) (*map[string]*news.NewsItemList, error) {
-	// conn, err := grpc.NewClient("newsParser:50051", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	conn, err := grpc.NewClient("localhost:50051", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return nil, err
@@ -118,10 +126,6 @@ func main() {
 		"https://nytimes.com/services/xml/rss/nyt/World.xml",
 		"https://research.swtch.com/feed.atom",
 	}
-
-	// storage := &NewsStorage{
-	// 	news: parser.ParseAllNews(sources),
-	// }
 	newsData, err := getNewsFromParser(sources)
 	if err != nil {
 		log.Fatal("Failed to fetch news from parser")
@@ -157,7 +161,10 @@ func main() {
 						ansText := "Hi! I can help to you with the latest news\n" +
 							"Click on a news button."
 						msg := tgbotapi.NewMessage(update.Message.Chat.ID, ansText)
-						bot.Send(msg)
+						_, err := bot.Send(msg)
+						if err != nil {
+							log.Printf("There are some problems with sending message: %v", err)
+						}
 					}
 				} else {
 					switch update.Message.Text {
@@ -174,7 +181,10 @@ func main() {
 							ansText += newsVals[i].Description + "\n"
 							ansText += newsVals[i].Link
 							msg := tgbotapi.NewMessage(update.Message.Chat.ID, ansText)
-							bot.Send(msg)
+							_, err := bot.Send(msg)
+							if err != nil {
+								log.Printf("There are some problems with sending message: %v", err)
+							}
 							time.Sleep(1 * time.Second)
 						}
 					case "Close keyboard":
@@ -182,7 +192,10 @@ func main() {
 					case "Update news":
 						go func(chatID int64) {
 							msg := tgbotapi.NewMessage(chatID, "Обновляем новости")
-							bot.Send(msg)
+							_, err := bot.Send(msg)
+							if err != nil {
+								log.Printf("There are some problems with sending message: %v", err)
+							}
 							latestNews := parser.ParseAllNews(sources)
 							storage.mu.Lock()
 							storage.news = latestNews

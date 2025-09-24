@@ -32,25 +32,14 @@ func (s *server) GetNews(ctx context.Context, req *news.NewsRequest) (*news.News
 		}
 		data[name] = itemList
 	}
-	// for _, newsList := range result {
-	// 	for _, n := range newsList {
-	// 		items = append(items, &news.NewsItem{
-	// 			Title:       n.Title,
-	// 			Link:        n.Link,
-	// 			Date:        n.Date.Format("2006-01-02 15:04:05"),
-	// 			Description: n.Description,
-	// 			Website:     n.Website,
-	// 		})
-	// 	}
-	// }
-	// return &news.NewsResponse{Items: items}, nil
 	return &news.NewsResponse{Data: data}, nil
 }
 
 func main() {
 	lis, err := net.Listen("tcp", ":50051")
 	if err != nil {
-		log.Fatalf("failed to listen: %v", err)
+		log.Fatalf("failed to listen: %v\n", err)
+		return
 	}
 	s := grpc.NewServer()
 	news.RegisterNewsParserServer(s, &server{})
