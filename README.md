@@ -1,2 +1,7 @@
-<h1>News bot</h1>
-<h3>Parsing news from RSS news feeds in different goroutines and displaying in a telegram bot.</h3>
+# Агрегатор новостных лент
+## Описание
+#### Система для автоматического сбора и обработки RSS новостных лент через Telegram-бота. Пользователи могут смотреть новости от предлагаемых популярных источников.
+
+## Используемые технологии
+* __gRPC__
+* **telegram-bot-api**
