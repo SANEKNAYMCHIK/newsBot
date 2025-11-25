@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/SANEKNAYMCHIK/newsBot/internal/models"
-	"github.com/jackc/pgx"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
