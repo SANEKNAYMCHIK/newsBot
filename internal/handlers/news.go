@@ -11,12 +11,18 @@ import (
 
 type NewsHandler struct {
 	NewsService     *services.NewsService
+	SourceService   *services.SourceService
 	CategoryService *services.CategoryService
 }
 
-func NewNewsHandler(newsService *services.NewsService, categoryService *services.CategoryService) *NewsHandler {
+func NewNewsHandler(
+	newsService *services.NewsService,
+	sourceService *services.SourceService,
+	categoryService *services.CategoryService,
+) *NewsHandler {
 	return &NewsHandler{
 		NewsService:     newsService,
+		SourceService:   sourceService,
 		CategoryService: categoryService,
 	}
 }
@@ -59,7 +65,7 @@ func (n *NewsHandler) GetNewsByID(c *gin.Context) {
 }
 
 func (n *NewsHandler) GetActiveSources(c *gin.Context) {
-	sources, err := n.NewsService.GetActiveSources(c.Request.Context())
+	sources, err := n.SourceService.GetActiveSources(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, models.ErrorResponse{Error: err.Error()})
 		return

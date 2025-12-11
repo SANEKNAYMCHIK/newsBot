@@ -12,7 +12,7 @@ func NewRouter(
 	userService *services.UserService,
 	newsService *services.NewsService,
 	categoryService *services.CategoryService,
-	// subscriptionService *services.SubscriptionService,
+	subscriptionService *services.SubscriptionService,
 	sourceService *services.SourceService,
 	adminService *services.AdminService,
 	jwtManager *auth.JWTManager,
@@ -22,8 +22,8 @@ func NewRouter(
 
 	authHandler := NewAuthHandler(authService)
 	userHandler := NewUserHandler(userService)
-	newsHandler := NewNewsHandler(newsService, categoryService)
-	// subscriptionHandler := NewSubscriptionHandler(subscriptionService)
+	newsHandler := NewNewsHandler(newsService, sourceService, categoryService)
+	subscriptionHandler := NewSubscriptionHandler(subscriptionService)
 	adminHandler := NewAdminHandler(adminService, sourceService, categoryService)
 
 	authGroup := router.Group("/auth")
@@ -39,9 +39,13 @@ func NewRouter(
 		{
 			userGroup.GET("/profile", userHandler.GetProfile)
 			// userGroup.PUT("/profile", userHandler.UpdateProfile)
-			userGroup.GET("/subscriptions", userHandler.GetSubscriptions)
-			userGroup.POST("/subscriptions", userHandler.AddSubscription)
-			userGroup.DELETE("/subscriptions/:id", userHandler.RemoveSubscription)
+		}
+
+		subscriptionGroup := protected.Group("/user/subscriptions")
+		{
+			subscriptionGroup.GET("/", subscriptionHandler.GetSubscriptions)
+			subscriptionGroup.POST("/", subscriptionHandler.AddSubscription)
+			subscriptionGroup.DELETE("/:id", subscriptionHandler.RemoveSubscription)
 		}
 
 		newsGroup := protected.Group("/news")

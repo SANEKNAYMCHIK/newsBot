@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/golang-migrate/migrate"
+	"github.com/golang-migrate/migrate/v4"
+	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	"github.com/golang-migrate/migrate/v4/source/iofs"
 )
 
 //go:embed migrations/*.sql
@@ -16,35 +18,28 @@ type Migrator struct {
 }
 
 func NewMigrator(strConn string) (*Migrator, error) {
-	m, err := migrate.New("iofs://migrations", strConn)
+	sourceDriver, err := iofs.New(migrationsFS, "migrations")
+	if err != nil {
+		return nil, fmt.Errorf("failed to create source driver: %w", err)
+	}
+
+	m, err := migrate.NewWithSourceInstance("iofs", sourceDriver, strConn)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create migrator: %w", err)
 	}
+
 	return &Migrator{migrator: m}, nil
 }
 
 func (m *Migrator) Close() {
 	if m.migrator != nil {
-		m.Close()
+		_, _ = m.migrator.Close()
 	}
 }
 
 func (m *Migrator) Up() error {
 	if err := m.migrator.Up(); err != nil && err != migrate.ErrNoChange {
 		return fmt.Errorf("failed to apply migrations: %w", err)
-	}
-
-	version, dirty, err := m.migrator.Version()
-	if err != nil && err != migrate.ErrNilVersion {
-		return fmt.Errorf("failed to get migration version: %w", err)
-	}
-
-	if dirty {
-		log.Printf("Database is dirty at version %d", version)
-	} else if err == migrate.ErrNilVersion {
-		log.Printf("Database is empty, initial state")
-	} else {
-		log.Printf("Database is at version %d", version)
 	}
 	log.Println("Migrations completed successfully")
 	return nil

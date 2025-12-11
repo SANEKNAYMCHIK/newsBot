@@ -25,7 +25,7 @@ func NewJWTManager(secretKey string) *JWTManager {
 func (j *JWTManager) GenerateToken(user *models.User) (string, error) {
 	claims := &Claims{
 		UserID: user.ID,
-		Email:  user.Email,
+		Email:  *user.Email,
 		Role:   user.Role,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),

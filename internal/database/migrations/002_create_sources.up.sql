@@ -3,7 +3,7 @@ CREATE TABLE sources (
     name VARCHAR(255) NOT NULL,
     url VARCHAR(500) UNIQUE NOT NULL,
     category_id INTEGER REFERENCES categories(id),
-    is_checked BOOLEAN DEFAULT FALSE
+    is_active BOOLEAN DEFAULT FALSE
 );
 
 CREATE INDEX idx_sources_category ON sources(category_id);

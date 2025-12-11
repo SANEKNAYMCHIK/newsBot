@@ -1,6 +1,6 @@
 CREATE TABLE user_sources (
-    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-    source_id INTEGER REFERENCES sources(id) ON DELETE CASCADE,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+    source_id INTEGER REFERENCES sources(id) ON DELETE CASCADE NOT NULL,
     PRIMARY KEY (user_id, source_id)
 );
 

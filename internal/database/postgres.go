@@ -14,10 +14,12 @@ type Postgres struct {
 }
 
 func NewPostgres(ctx context.Context, cfg *config.Config) (*Postgres, error) {
-	strConn := fmt.Sprintf(
-		"postgresql://%s:%s@%s:%s/%s",
-		cfg.DBUser, cfg.DBPassword, cfg.DBHost, cfg.DBPort, cfg.DBName,
-	)
+	// strConn := fmt.Sprintf(
+	// 	"postgres://%s:%s@%s:%s/%s",
+	// 	cfg.DBUser, cfg.DBPassword, cfg.DBHost, cfg.DBPort, cfg.DBName,
+	// )
+	strConn := "postgres://user:password@postgres:5432/news_aggregator?sslmode=disable"
+
 	poolCfg, err := pgxpool.ParseConfig(strConn)
 
 	if err != nil {

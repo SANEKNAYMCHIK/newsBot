@@ -4,7 +4,7 @@ CREATE TABLE news_items (
     content TEXT,
     url VARCHAR(500) UNIQUE NOT NULL,
     published_at TIMESTAMPTZ NOT NULL,
-    source_id INTEGER REFERENCES sources(id) ON DELETE CASCADE,
+    source_id INTEGER REFERENCES sources(id) ON DELETE CASCADE NOT NULL,
     guid VARCHAR(255) NOT NULL,
     UNIQUE(source_id, guid)
 );
