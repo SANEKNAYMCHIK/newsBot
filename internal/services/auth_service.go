@@ -3,6 +3,8 @@ package services
 import (
 	"context"
 	"errors"
+	"fmt"
+	"log"
 
 	"github.com/SANEKNAYMCHIK/newsBot/internal/models"
 	"github.com/SANEKNAYMCHIK/newsBot/internal/repositories"
@@ -34,10 +36,18 @@ func (a *AuthService) Register(ctx context.Context, req *models.RegisterRequest)
 	}
 
 	hashedPasswordStr := string(hashedPassword)
+
+	role := "user"
+	if usersCount, err := a.userRepo.Count(ctx); err == nil {
+		if usersCount == 0 {
+			role = "admin"
+			log.Println("The first user automatically set as admin")
+		}
+	}
 	user := &models.User{
 		Email:        &req.Email,
 		PasswordHash: &hashedPasswordStr,
-		Role:         "user",
+		Role:         role,
 	}
 	if err := a.userRepo.Create(ctx, user); err != nil {
 		return nil, err
@@ -78,23 +88,38 @@ func (a *AuthService) Login(ctx context.Context, req *models.LoginRequest) (*mod
 	}, nil
 }
 
-func (a *AuthService) RegisterOrLoginTelegram(ctx context.Context, req *models.TelegramRequest) (*models.User, error) {
-	user, err := a.userRepo.GetByTelegramID(ctx, req.TgChatID)
-	if err != nil {
-		return nil, err
+func (a *AuthService) RegisterOrUpdateTelegramUser(ctx context.Context, chatID int64, username, firstName string) (*models.User, error) {
+	user, err := a.userRepo.GetByTelegramID(ctx, chatID)
+	if err == nil && user != nil {
+		user.TgChatID = &chatID
+		user.TgUsername = &username
+		user.TgFirstName = &firstName
+		err = a.userRepo.Update(ctx, user)
+		if err != nil {
+			return user, errors.New("error with updating of new info about user")
+		}
+		return user, nil
 	}
-	if user != nil {
-		return nil, errors.New("already use telegram")
+
+	role := "user"
+	if usersCount, err := a.userRepo.Count(ctx); err == nil {
+		if usersCount == 0 {
+			role = "admin"
+			log.Println("The first user automatically set as admin")
+		}
 	}
 
 	user = &models.User{
-		TgChatID:    &req.TgChatID,
-		TgFirstName: req.TgFirstName,
-		TgUsername:  req.TgUsername,
-		Role:        "user",
+		TgChatID:    &chatID,
+		TgUsername:  &username,
+		TgFirstName: &firstName,
+		Role:        role,
 	}
+
 	if err := a.userRepo.Create(ctx, user); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error of creating user: %w", err)
 	}
+
+	log.Printf("New Telegram user: %s (ID: %d, Role: %s)", firstName, chatID, role)
 	return user, nil
 }

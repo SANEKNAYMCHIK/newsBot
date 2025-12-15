@@ -13,12 +13,17 @@ type Postgres struct {
 	Pool *pgxpool.Pool
 }
 
-func NewPostgres(ctx context.Context, cfg *config.Config) (*Postgres, error) {
+func NewPostgres(ctx context.Context, cfg *config.Config, val string) (*Postgres, error) {
 	// strConn := fmt.Sprintf(
 	// 	"postgres://%s:%s@%s:%s/%s",
 	// 	cfg.DBUser, cfg.DBPassword, cfg.DBHost, cfg.DBPort, cfg.DBName,
 	// )
-	strConn := "postgres://user:password@postgres:5432/news_aggregator?sslmode=disable"
+	strConn := ""
+	if val != "" {
+		strConn = val
+	} else {
+		strConn = "postgres://user:password@postgres:5432/news_aggregator?sslmode=disable"
+	}
 
 	poolCfg, err := pgxpool.ParseConfig(strConn)
 

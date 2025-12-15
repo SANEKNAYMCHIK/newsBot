@@ -1,23 +1,24 @@
 package config
 
+import "os"
+
 type Config struct {
-	DBHost string
-	DBPort string
-	DBUser string
+	DBHost     string
+	DBPort     string
+	DBUser     string
 	DBPassword string
-	DBName string
+	DBName     string
 
 	// Redis name;port;...
 
 	TelegramBotToken string
-	ServerPort string
+	ServerPort       string
 }
-
 
 func Load() *Config {
 	return &Config{
-		DBHost: getEnv("DB_HOST", "localhost")
-		...
+		DBHost: getEnv("DB_HOST", "localhost"),
+		// ...
 	}
 }
 

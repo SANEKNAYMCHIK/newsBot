@@ -12,12 +12,6 @@ type LoginRequest struct {
 	Password string `json:"password" binding:"required,min=6"`
 }
 
-type TelegramRequest struct {
-	TgChatID    int64   `json:"tg_chat_id"`
-	TgUsername  *string `json:"tg_username"`
-	TgFirstName *string `json:"tg_first_name"`
-}
-
 type AuthResponse struct {
 	User  *User  `json:"user"`
 	Token string `json:"token"`

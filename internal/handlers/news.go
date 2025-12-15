@@ -83,3 +83,46 @@ func (n *NewsHandler) GetCategories(c *gin.Context) {
 
 	c.JSON(http.StatusOK, categories)
 }
+
+func (n *NewsHandler) AddSource(c *gin.Context) {
+	var req models.CreateSourceRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{Error: err.Error()})
+		return
+	}
+
+	source, err := n.SourceService.CreateSource(c.Request.Context(), &req)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{Error: err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, source)
+}
+
+func (n *NewsHandler) GetNewsBySource(c *gin.Context) {
+	sourceIDStr := c.Param("id")
+	sourceID, err := strconv.ParseInt(sourceIDStr, 10, 64)
+	if err != nil || sourceID <= 0 {
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{Error: "Incorrect source ID"})
+		return
+	}
+
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "10"))
+
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 || pageSize > 100 {
+		pageSize = 10
+	}
+
+	userID, _ := c.Get("user_id")
+	response, err := n.NewsService.GetNewsBySource(c.Request.Context(), sourceID, userID.(int64), page, pageSize)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{Error: err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, response)
+}

@@ -146,48 +146,30 @@ func (r *userRepository) GetUsers(ctx context.Context, page, pageSize int) ([]mo
 	return users, total, nil
 }
 
-// func (r *userRepository) Update(ctx context.Context, user *models.User) error {
-// 	query := `
-//         UPDATE users
-//         SET tg_chat_id = $1, tg_username = $2, tg_first_name = $3,
-//             email = $4, password_hash = $5, role = $6
-//         WHERE id = $7
-//     `
+func (r *userRepository) Count(ctx context.Context) (int, error) {
+	query := `SELECT COUNT(*) FROM users`
+	var count int
+	err := r.pool.QueryRow(ctx, query).Scan(&count)
+	return count, err
+}
 
-// 	_, err := r.pool.Exec(ctx, query,
-// 		user.TgChatID,
-// 		user.TgUsername,
-// 		user.TgFirstName,
-// 		user.Email,
-// 		user.PasswordHash,
-// 		user.Role,
-// 		user.ID,
-// 	)
+func (r *userRepository) Update(ctx context.Context, user *models.User) error {
+	query := `
+        UPDATE users 
+        SET tg_chat_id = $1, tg_username = $2, tg_first_name = $3, 
+            email = $4, password_hash = $5, role = $6
+        WHERE id = $7
+    `
 
-// 	return err
-// }
+	_, err := r.pool.Exec(ctx, query,
+		user.TgChatID,
+		user.TgUsername,
+		user.TgFirstName,
+		user.Email,
+		user.PasswordHash,
+		user.Role,
+		user.ID,
+	)
 
-// func (r *userRepository) GetUserSubscriptions(ctx context.Context, userID int) ([]int, error) {
-// 	query := `
-//         SELECT source_id
-//         FROM user_sources
-//         WHERE user_id = $1
-//     `
-
-// 	rows, err := r.pool.Query(ctx, query, userID)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	defer rows.Close()
-
-// 	var sourceIDs []int
-// 	for rows.Next() {
-// 		var sourceID int
-// 		if err := rows.Scan(&sourceID); err != nil {
-// 			return nil, err
-// 		}
-// 		sourceIDs = append(sourceIDs, sourceID)
-// 	}
-
-// 	return sourceIDs, nil
-// }
+	return err
+}

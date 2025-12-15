@@ -39,8 +39,3 @@ type UserSource struct {
 	UserID   int64 `json:"user_id" db:"user_id"`
 	SourceID int64 `json:"source_id" db:"source_id"`
 }
-
-type SentNews struct {
-	NewsID int64 `json:"news_id" db:"news_id"`
-	UserID int64 `json:"user_id" db:"user_id"`
-}

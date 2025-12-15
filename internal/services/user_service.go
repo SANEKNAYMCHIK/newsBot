@@ -31,15 +31,3 @@ func (u *UserService) GetProfile(ctx context.Context, userID int64) (*models.Use
 	user.PasswordHash = nil
 	return user, nil
 }
-
-// func (u *UserService) GetSubscriptions(ctx context.Context, userID int64) ([]*models.Source, error) {
-// 	return u.subscriptionRepo.GetUserSubscriptions(ctx, userID)
-// }
-
-// func (u *UserService) AddSubscription(ctx context.Context, userID, sourceID int64) error {
-// 	return u.subscriptionRepo.AddSubscription(ctx, userID, sourceID)
-// }
-
-// func (u *UserService) RemoveSubscription(ctx context.Context, userID, sourceID int64) error {
-// 	return u.subscriptionRepo.RemoveSubscription(ctx, userID, sourceID)
-// }

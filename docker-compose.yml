@@ -1,0 +1,61 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - DATABASE_URL=postgres://user:password@postgres:5432/news_aggregator?sslmode=disable
+      - JWT_SECRET=${JWT_SECRET:-dev-secret-key-change-in-production}
+      - SERVER_ADDRESS=:8080
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - news-network
+    restart: unless-stopped
+
+  telegram-bot:
+    build:
+      context: .
+      dockerfile: Dockerfile.bot
+    env_file: .env
+    environment:
+      - DATABASE_URL=postgres://user:password@postgres:5432/news_aggregator?sslmode=disable
+      - JWT_SECRET=${JWT_SECRET:-dev-secret-key-change-in-production}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - news-network
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=news_aggregator
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_INITDB_ARGS=--encoding=UTF8
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - news-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d news_aggregator"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
+
+networks:
+  news-network:
+    driver: bridge

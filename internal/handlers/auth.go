@@ -43,3 +43,30 @@ func (a *AuthHandler) Login(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, response)
 }
+
+func (a *AuthHandler) RegisterTelegram(c *gin.Context) {
+	var req struct {
+		TgChatID    int64  `json:"tg_chat_id" binding:"required"`
+		TgUsername  string `json:"tg_username"`
+		TgFirstName string `json:"tg_first_name"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{Error: err.Error()})
+		return
+	}
+
+	user, err := a.authService.RegisterOrUpdateTelegramUser(
+		c.Request.Context(),
+		req.TgChatID,
+		req.TgUsername,
+		req.TgFirstName,
+	)
+
+	if err != nil {
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{Error: err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, user)
+}

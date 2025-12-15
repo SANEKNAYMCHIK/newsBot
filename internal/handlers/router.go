@@ -15,6 +15,7 @@ func NewRouter(
 	subscriptionService *services.SubscriptionService,
 	sourceService *services.SourceService,
 	adminService *services.AdminService,
+	refreshService *services.RefreshService,
 	jwtManager *auth.JWTManager,
 ) *gin.Engine {
 
@@ -22,6 +23,7 @@ func NewRouter(
 
 	authHandler := NewAuthHandler(authService)
 	userHandler := NewUserHandler(userService)
+	refreshHandler := NewRefreshHandler(refreshService)
 	newsHandler := NewNewsHandler(newsService, sourceService, categoryService)
 	subscriptionHandler := NewSubscriptionHandler(subscriptionService)
 	adminHandler := NewAdminHandler(adminService, sourceService, categoryService)
@@ -30,6 +32,7 @@ func NewRouter(
 	{
 		authGroup.POST("/register", authHandler.Register)
 		authGroup.POST("/login", authHandler.Login)
+		authGroup.POST("/telegram", authHandler.RegisterTelegram)
 	}
 
 	protected := router.Group("/")
@@ -38,7 +41,8 @@ func NewRouter(
 		userGroup := protected.Group("/user")
 		{
 			userGroup.GET("/profile", userHandler.GetProfile)
-			// userGroup.PUT("/profile", userHandler.UpdateProfile)
+			userGroup.POST("/refresh", refreshHandler.RequestRefresh)
+			userGroup.GET("/refresh/:id", refreshHandler.GetRefreshStatus)
 		}
 
 		subscriptionGroup := protected.Group("/user/subscriptions")
@@ -53,14 +57,18 @@ func NewRouter(
 			newsGroup.GET("/", newsHandler.GetNews)
 			newsGroup.GET("/:id", newsHandler.GetNewsByID)
 			newsGroup.GET("/sources", newsHandler.GetActiveSources)
+			newsGroup.POST("/sources", newsHandler.AddSource)
 			newsGroup.GET("/categories", newsHandler.GetCategories)
+			newsGroup.GET("/source/:id", newsHandler.GetNewsBySource)
 		}
 
 		adminGroup := protected.Group("/admin")
 		adminGroup.Use(middleware.RoleMiddleware("admin"))
 		{
+			adminGroup.POST("/users/:id/make-admin", adminHandler.MakeAdmin)
+			adminGroup.POST("/users/:id/remove-admin", adminHandler.RemoveAdmin)
+
 			adminGroup.GET("/users", adminHandler.GetUsers)
-			adminGroup.POST("/sources", adminHandler.AddSource)
 			adminGroup.PUT("/sources/:id", adminHandler.UpdateSource)
 			adminGroup.DELETE("/sources/:id", adminHandler.DeleteSource)
 			adminGroup.POST("/categories", adminHandler.AddCategory)

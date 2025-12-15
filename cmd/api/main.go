@@ -3,29 +3,99 @@ package main
 import (
 	"context"
 	"log"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/SANEKNAYMCHIK/newsBot/internal/config"
 	"github.com/SANEKNAYMCHIK/newsBot/internal/database"
+	"github.com/SANEKNAYMCHIK/newsBot/internal/handlers"
 	"github.com/SANEKNAYMCHIK/newsBot/internal/repositories"
-	"github.com/gin-gonic/gin"
+	"github.com/SANEKNAYMCHIK/newsBot/internal/services"
+	"github.com/SANEKNAYMCHIK/newsBot/internal/worker"
+	"github.com/SANEKNAYMCHIK/newsBot/pkg/auth"
 )
 
 func main() {
 	cfg := config.Load()
 	ctx := context.Background()
-	db, err := database.NewPostgres(ctx, cfg)
+	db, err := database.NewPostgres(ctx, cfg, "")
 	if err != nil {
-		log.Fatalf("Failed to connect database: %w", err)
+		log.Printf("Failed to connect database: %s", err)
 	}
 	defer db.Close()
 	log.Println("Database connection established successfully")
 
+	jwtManager := auth.NewJWTManager("very-secret-key") // Set complex key into config or .env
+
 	userRepo := repositories.NewUserRepository(db.Pool)
+	newsRepo := repositories.NewNewsRepository(db.Pool)
+	sourceRepo := repositories.NewSourceRepository(db.Pool)
+	categoryRepo := repositories.NewCategoryRepository(db.Pool)
+	subscriptionRepo := repositories.NewSubscriptionRepository(db.Pool)
 
-	router := gin.Default()
+	rssParser := services.NewRssParser(10)
+	rssService := services.NewRssService(sourceRepo, newsRepo, rssParser)
 
-	// Setting API
+	refreshService := services.NewRefreshService(
+		rssService,
+		subscriptionRepo,
+		5,
+		100,
+		3*time.Minute,
+	)
+	go refreshService.Start(context.Background())
+	newsWorker := worker.NewNewsWorker(rssService, 10*time.Minute)
 
-	log.Printf("Server starting on http://localhost:%s", cfg.ServerPort)
-	router.Run(":" + cfg.ServerPort)
+	go func() {
+		log.Println("Starting RSS news worker...")
+		newsWorker.Start(context.Background())
+	}()
+
+	defer func() {
+		newsWorker.Stop()
+		log.Println("Workers stopped")
+	}()
+
+	authService := services.NewAuthService(userRepo, jwtManager)
+	userService := services.NewUserService(userRepo)
+	newsService := services.NewNewsService(newsRepo, sourceRepo, subscriptionRepo)
+	subscriptionService := services.NewSubscriptionService(subscriptionRepo, sourceRepo)
+	sourceService := services.NewSourceService(sourceRepo)
+	categoryService := services.NewCategoryService(categoryRepo)
+	adminService := services.NewAdminService(userRepo)
+
+	router := handlers.NewRouter(authService, userService, newsService, categoryService, subscriptionService, sourceService, adminService, refreshService, jwtManager)
+
+	srv := &http.Server{
+		Addr:    ":" + "8080",
+		Handler: router,
+	}
+
+	// Graceful shutdown
+	go func() {
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("ListenAndServe(): %v", err)
+		}
+	}()
+
+	log.Println("Server started on port 8080")
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+
+	<-quit
+	log.Println("Shutting down server...")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Fatal("Server forced to shutdown:", err)
+	}
+
+	log.Println("Server exiting")
+
 }

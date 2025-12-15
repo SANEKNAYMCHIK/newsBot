@@ -7,4 +7,4 @@ CREATE TABLE sources (
 );
 
 CREATE INDEX idx_sources_category ON sources(category_id);
-CREATE INDEX idx_sources_checked ON sources(is_checked) WHERE is_checked = true;
+CREATE INDEX idx_sources_checked ON sources(is_active) WHERE is_active = true;

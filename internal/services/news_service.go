@@ -2,23 +2,27 @@ package services
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/SANEKNAYMCHIK/newsBot/internal/models"
 	"github.com/SANEKNAYMCHIK/newsBot/internal/repositories"
 )
 
 type NewsService struct {
-	newsRepo   repositories.NewsRepository
-	sourceRepo repositories.SourceRepository
+	newsRepo         repositories.NewsRepository
+	sourceRepo       repositories.SourceRepository
+	subscriptionRepo repositories.SubscriptionRepository
 }
 
 func NewNewsService(
 	newsRepo repositories.NewsRepository,
 	sourceRepo repositories.SourceRepository,
+	subscriptionRepo repositories.SubscriptionRepository,
 ) *NewsService {
 	return &NewsService{
-		newsRepo:   newsRepo,
-		sourceRepo: sourceRepo,
+		newsRepo:         newsRepo,
+		sourceRepo:       sourceRepo,
+		subscriptionRepo: subscriptionRepo,
 	}
 }
 
@@ -53,9 +57,12 @@ func (n *NewsService) GetNews(ctx context.Context, userID int64, page, pageSize 
 		})
 	}
 
-	totalPages := int(total) / pageSize
-	if int(total)%pageSize > 0 {
-		totalPages++
+	totalPages := 0
+	if total > 0 {
+		totalPages = int(total) / pageSize
+		if int(total)%pageSize > 0 {
+			totalPages++
+		}
 	}
 
 	return &models.PaginatedResponse[models.NewsResponse]{
@@ -90,5 +97,61 @@ func (s *NewsService) GetNewsByID(ctx context.Context, newsID int) (*models.News
 		SourceID:    news.SourceID,
 		SourceName:  source.Name,
 		CategoryID:  source.CategoryID,
+	}, nil
+}
+
+func (s *NewsService) GetNewsBySource(
+	ctx context.Context,
+	sourceID int64,
+	userID int64,
+	page, pageSize int,
+) (*models.PaginatedResponse[models.NewsResponse], error) {
+	source, err := s.sourceRepo.GetByID(ctx, int(sourceID))
+	if err != nil || source == nil {
+		return nil, fmt.Errorf("source doesn't exist")
+	}
+
+	subscribed, err := s.subscriptionRepo.IsSubscribed(ctx, userID, sourceID)
+	if err != nil || !subscribed {
+		return nil, fmt.Errorf("user doesn't subscribe on the source")
+	}
+
+	offset := (page - 1) * pageSize
+	newsItems, total, err := s.newsRepo.GetBySource(ctx, sourceID, offset, pageSize)
+	if err != nil {
+		return nil, err
+	}
+
+	var data []models.NewsResponse
+	for _, item := range newsItems {
+		var content *string
+		if item.Content != nil {
+			content = item.Content
+		}
+		data = append(data, models.NewsResponse{
+			ID:          item.ID,
+			Title:       item.Title,
+			Content:     content,
+			URL:         item.URL,
+			PublishedAt: item.PublishedAt,
+			SourceID:    item.SourceID,
+			SourceName:  source.Name,
+		})
+	}
+
+	totalPages := 0
+	if total > 0 {
+		totalPages = int(total) / pageSize
+		if int(total)%pageSize > 0 {
+			totalPages++
+		}
+	}
+
+	return &models.PaginatedResponse[models.NewsResponse]{
+		Data:       data,
+		Total:      total,
+		Page:       page,
+		PageSize:   pageSize,
+		TotalPages: totalPages,
 	}, nil
 }

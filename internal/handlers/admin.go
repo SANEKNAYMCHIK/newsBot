@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -37,22 +38,6 @@ func (a *AdminHandler) GetUsers(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, users)
-}
-
-func (a *AdminHandler) AddSource(c *gin.Context) {
-	var req models.CreateSourceRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, models.ErrorResponse{Error: err.Error()})
-		return
-	}
-
-	source, err := a.SourceService.CreateSource(c.Request.Context(), &req)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, models.ErrorResponse{Error: err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, source)
 }
 
 func (a *AdminHandler) UpdateSource(c *gin.Context) {
@@ -107,4 +92,52 @@ func (a *AdminHandler) AddCategory(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, category)
+}
+
+func (a *AdminHandler) MakeAdmin(c *gin.Context) {
+	userID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{Error: "Incorrect user ID"})
+		return
+	}
+
+	currentUserID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, models.ErrorResponse{Error: "User unathorized"})
+		return
+	}
+
+	err = a.AdminService.MakeAdmin(c.Request.Context(), userID, currentUserID.(int64))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{Error: err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, models.MessageResponse{
+		Message: fmt.Sprintf("User with ID: %d now is admin", userID),
+	})
+}
+
+func (a *AdminHandler) RemoveAdmin(c *gin.Context) {
+	userID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{Error: "Incorrect user ID"})
+		return
+	}
+
+	currentUserID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, models.ErrorResponse{Error: "User unathorized"})
+		return
+	}
+
+	err = a.AdminService.RemoveAdmin(c.Request.Context(), userID, currentUserID.(int64))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{Error: err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, models.MessageResponse{
+		Message: fmt.Sprintf("User with ID: %d now is user", userID),
+	})
 }
