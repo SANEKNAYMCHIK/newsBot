@@ -37,7 +37,7 @@ func (h *Handler) HandleUpdate(update tgbotapi.Update) {
 func (h *Handler) sendMessage(chatID int64, text string) {
 	msg := tgbotapi.NewMessage(chatID, text)
 	msg.ParseMode = "Markdown"
-	h.bot.Send(msg)
+	_, _ = h.bot.Send(msg)
 }
 
 func (h *Handler) handleMessage(ctx context.Context, message *tgbotapi.Message) {
@@ -117,7 +117,7 @@ func (h *Handler) handleStart(ctx context.Context, message *tgbotapi.Message, us
 
 	msg := tgbotapi.NewMessage(message.Chat.ID, welcomeText)
 	msg.ReplyMarkup = MainMenuKeyboard()
-	h.bot.Send(msg)
+	_, _ = h.bot.Send(msg)
 }
 
 func (h *Handler) handleHelp(ctx context.Context, message *tgbotapi.Message) {
@@ -267,7 +267,7 @@ func (h *Handler) showUserNewsWithPagination(ctx context.Context, chatID, userID
 			msg.ReplyMarkup = keyboard
 		}
 
-		h.bot.Send(msg)
+		_, _ = h.bot.Send(msg)
 		time.Sleep(100 * time.Millisecond)
 	}
 }
@@ -358,7 +358,7 @@ func (h *Handler) showSourcesWithPagination(ctx context.Context, chatID int64, p
 		}
 	}
 
-	h.bot.Send(msg)
+	_, _ = h.bot.Send(msg)
 }
 
 func (h *Handler) handleSourceNewsCommand(ctx context.Context, message *tgbotapi.Message, user *models.User) {
@@ -391,7 +391,7 @@ func (h *Handler) handleSourceNewsCommand(ctx context.Context, message *tgbotapi
 func (h *Handler) showSourceNewsWithPagination(ctx context.Context, chatID, userID, sourceID int64, page, pageSize int) {
 	response, err := h.service.GetNewsBySourceWithPagination(ctx, sourceID, userID, page, pageSize)
 	if err != nil {
-		h.sendMessage(chatID, fmt.Sprintf("%s", err.Error()))
+		h.sendMessage(chatID, err.Error())
 		return
 	}
 
@@ -461,7 +461,7 @@ func (h *Handler) showSourceNewsWithPagination(ctx context.Context, chatID, user
 			msg.ReplyMarkup = keyboard
 		}
 
-		h.bot.Send(msg)
+		_, _ = h.bot.Send(msg)
 		time.Sleep(100 * time.Millisecond)
 	}
 
@@ -618,7 +618,7 @@ func (h *Handler) handleText(ctx context.Context, message *tgbotapi.Message, use
 }
 
 func (h *Handler) handleCallbackQuery(ctx context.Context, callback *tgbotapi.CallbackQuery) {
-	h.bot.Send(tgbotapi.NewCallback(callback.ID, ""))
+	_, _ = h.bot.Send(tgbotapi.NewCallback(callback.ID, ""))
 
 	data := callback.Data
 	chatID := callback.Message.Chat.ID
@@ -713,7 +713,7 @@ func (h *Handler) showMainMenu(chatID int64, firstName string) {
 	msg := tgbotapi.NewMessage(chatID, text)
 	msg.ParseMode = "Markdown"
 	msg.ReplyMarkup = MainMenuKeyboard()
-	h.bot.Send(msg)
+	_, _ = h.bot.Send(msg)
 }
 
 func (h *Handler) showSubscriptionMenu(ctx context.Context, chatID, userID int64) {
@@ -741,5 +741,5 @@ func (h *Handler) showSubscriptionMenu(ctx context.Context, chatID, userID int64
 	msg := tgbotapi.NewMessage(chatID, text)
 	msg.ParseMode = "Markdown"
 	msg.ReplyMarkup = keyboard
-	h.bot.Send(msg)
+	_, _ = h.bot.Send(msg)
 }
