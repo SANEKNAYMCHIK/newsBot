@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/SANEKNAYMCHIK/newsBot/internal/config"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -13,19 +12,8 @@ type Postgres struct {
 	Pool *pgxpool.Pool
 }
 
-func NewPostgres(ctx context.Context, cfg *config.Config, val string) (*Postgres, error) {
-	// strConn := fmt.Sprintf(
-	// 	"postgres://%s:%s@%s:%s/%s",
-	// 	cfg.DBUser, cfg.DBPassword, cfg.DBHost, cfg.DBPort, cfg.DBName,
-	// )
-	strConn := ""
-	if val != "" {
-		strConn = val
-	} else {
-		strConn = "postgres://user:password@postgres:5432/news_aggregator?sslmode=disable"
-	}
-
-	poolCfg, err := pgxpool.ParseConfig(strConn)
+func NewPostgres(ctx context.Context, connStr string) (*Postgres, error) {
+	poolCfg, err := pgxpool.ParseConfig(connStr)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse connection string: %w", err)
@@ -38,7 +26,7 @@ func NewPostgres(ctx context.Context, cfg *config.Config, val string) (*Postgres
 
 	postgres := &Postgres{Pool: pool}
 
-	if err := postgres.Migrate(strConn); err != nil {
+	if err := postgres.Migrate(connStr); err != nil {
 		return nil, fmt.Errorf("failed to run migrations: %w", err)
 	}
 

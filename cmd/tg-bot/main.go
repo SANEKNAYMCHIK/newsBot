@@ -16,18 +16,13 @@ import (
 	"github.com/SANEKNAYMCHIK/newsBot/internal/services"
 	"github.com/SANEKNAYMCHIK/newsBot/pkg/auth"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
-	"github.com/joho/godotenv"
 )
 
 func main() {
-	if err := godotenv.Load(); err != nil {
-		log.Printf(".env файл не найден: %v", err)
-	}
-
 	cfg := config.Load()
 
 	ctx := context.Background()
-	db, err := database.NewPostgres(ctx, cfg, "")
+	db, err := database.NewPostgres(ctx, cfg.DBUrl)
 	if err != nil {
 		log.Fatalf("Ошибка подключения к БД: %v", err)
 	}
@@ -41,7 +36,7 @@ func main() {
 	subscriptionRepo := repositories.NewSubscriptionRepository(db.Pool)
 	categoryRepo := repositories.NewCategoryRepository(db.Pool)
 
-	jwtManager := auth.NewJWTManager("secret-key")
+	jwtManager := auth.NewJWTManager(cfg.JWTSecret)
 	authService := services.NewAuthService(userRepo, jwtManager)
 	adminService := services.NewAdminService(userRepo)
 	categoryService := services.NewCategoryService(categoryRepo)
@@ -73,12 +68,7 @@ func main() {
 		refreshService,
 	)
 
-	token := os.Getenv("TOKEN")
-	if token == "" {
-		log.Fatal("TELEGRAM_BOT_TOKEN не установлен")
-	}
-
-	telegramBot, err := tgbotapi.NewBotAPI(token)
+	telegramBot, err := tgbotapi.NewBotAPI(cfg.TelegramBotToken)
 	if err != nil {
 		log.Fatalf("Ошибка создания бота: %v", err)
 	}

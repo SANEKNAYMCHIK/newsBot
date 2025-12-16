@@ -21,14 +21,14 @@ import (
 func main() {
 	cfg := config.Load()
 	ctx := context.Background()
-	db, err := database.NewPostgres(ctx, cfg, "")
+	db, err := database.NewPostgres(ctx, cfg.DBUrl)
 	if err != nil {
 		log.Printf("Failed to connect database: %s", err)
 	}
 	defer db.Close()
 	log.Println("Database connection established successfully")
 
-	jwtManager := auth.NewJWTManager("very-secret-key") // Set complex key into config or .env
+	jwtManager := auth.NewJWTManager(cfg.JWTSecret)
 
 	userRepo := repositories.NewUserRepository(db.Pool)
 	newsRepo := repositories.NewNewsRepository(db.Pool)
@@ -47,7 +47,7 @@ func main() {
 		3*time.Minute,
 	)
 	go refreshService.Start(context.Background())
-	newsWorker := worker.NewNewsWorker(rssService, 10*time.Minute)
+	newsWorker := worker.NewNewsWorker(rssService, time.Duration(cfg.ParserInterval)*time.Minute)
 
 	go func() {
 		log.Println("Starting RSS news worker...")
@@ -70,7 +70,7 @@ func main() {
 	router := handlers.NewRouter(authService, userService, newsService, categoryService, subscriptionService, sourceService, adminService, refreshService, jwtManager)
 
 	srv := &http.Server{
-		Addr:    ":" + "8080",
+		Addr:    ":" + cfg.ServerPort,
 		Handler: router,
 	}
 
@@ -81,7 +81,7 @@ func main() {
 		}
 	}()
 
-	log.Println("Server started on port 8080")
+	log.Printf("Server started on port %s", cfg.ServerPort)
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)

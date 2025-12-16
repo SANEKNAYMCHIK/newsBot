@@ -20,23 +20,23 @@ func (h *Handler) handleAdminCommand(ctx context.Context, message *tgbotapi.Mess
 	text := `*Панель администратора*
 
 *Основные команды:*
-• /admin_users [страница] - Список пользователей
-• /admin_stats - Статистика системы
-• /admin_make_admin <user_id> - Назначить админа
-• /admin_remove_admin <user_id> - Снять админа
+• */admin_users [страница]* - Список пользователей
+• */admin_stats* - Статистика системы
+• */admin_make_admin <user_id>* - Назначить админа
+• */admin_remove_admin <user_id>* - Снять админа
 
 *Управление категориями:*
-• /admin_add_category <название> - Добавить категорию
-• /categories - Показать все категории
+• */admin_add_category <название>* - Добавить категорию
+• */categories* - Показать все категории
 
 *Управление источниками:*
-• /admin_update_source <id> <true/false> - Изменить активность источника
-• /sources - Показать все источники
+• */admin_update_source <id> <true/false>* - Изменить активность источника
+• */sources* - Показать все источники
 
 *Мониторинг:*
-• /update_status <request_id> - Проверить статус обновления
+• */update_status <request_id>* - Проверить статус обновления
 
-Для помощи по конкретной команде используйте /help`
+Для помощи по конкретной команде используйте */help*`
 
 	h.sendMessage(message.Chat.ID, text)
 }

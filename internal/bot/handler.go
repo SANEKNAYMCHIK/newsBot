@@ -149,13 +149,13 @@ func (h *Handler) handleHelp(ctx context.Context, message *tgbotapi.Message) {
 	if isAdmin {
 		helpText += `*Админские команды:*
 
-• /admin - Панель администратора
-• /admin_users - Список пользователей
-• /admin_stats - Статистика системы
-• /admin_make_admin <id> - Назначить админа
-• /admin_remove_admin <id> - Снять админа
-• /admin_add_category <название> - Добавить категорию
-• /admin_update_source <id> <true/false> - Изменить активность источника`
+• */admin* - Панель администратора
+• */admin_users* - Список пользователей
+• */admin_stats* - Статистика системы
+• */admin_make_admin <id>* - Назначить админа
+• */admin_remove_admin <id>* - Снять админа
+• */admin_add_category <название>* - Добавить категорию
+• */admin_update_source <id> <true/false>* - Изменить активность источника`
 	}
 
 	helpText += `
