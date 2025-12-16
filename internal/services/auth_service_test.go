@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/SANEKNAYMCHIK/newsBot/internal/models"
@@ -50,6 +51,16 @@ func (m *MockUserRepository) GetUsers(ctx context.Context, page, pageSize int) (
 	return args.Get(0).([]models.User), args.Get(1).(int64), args.Error(2)
 }
 
+func (m *MockUserRepository) Update(ctx context.Context, user *models.User) error {
+	args := m.Called(ctx, user)
+	return args.Error(0)
+}
+
+func (m *MockUserRepository) Count(ctx context.Context) (int, error) {
+	args := m.Called(ctx)
+	return args.Get(0).(int), args.Error(1)
+}
+
 func TestAuthService_Register_Success(t *testing.T) {
 	mockRepo := new(MockUserRepository)
 	jwtManager := auth.NewJWTManager("test-secret")
@@ -62,10 +73,11 @@ func TestAuthService_Register_Success(t *testing.T) {
 	}
 
 	mockRepo.On("GetByEmail", ctx, req.Email).Return((*models.User)(nil), nil)
+	mockRepo.On("Count", ctx).Return(0, nil)
 	mockRepo.On("Create", ctx, mock.AnythingOfType("*models.User")).Run(func(args mock.Arguments) {
 		user := args.Get(1).(*models.User)
 		user.ID = 1
-		user.Role = "user"
+		user.Role = "admin"
 	}).Return(nil)
 	response, err := authService.Register(ctx, req)
 
@@ -73,7 +85,7 @@ func TestAuthService_Register_Success(t *testing.T) {
 	assert.NotNil(t, response)
 	assert.NotNil(t, response.User)
 	assert.Equal(t, int64(1), response.User.ID)
-	assert.Equal(t, "user", response.User.Role)
+	assert.Equal(t, "admin", response.User.Role)
 	assert.NotEmpty(t, response.Token)
 	assert.Nil(t, response.User.PasswordHash)
 
@@ -103,7 +115,7 @@ func TestAuthService_Register_UserExists(t *testing.T) {
 	assert.Nil(t, response)
 	assert.Contains(t, err.Error(), "user with this email already exists")
 
-	mockRepo.AssertNotCalled(t, "Create", mock.Anything, mock.Anything)
+	mockRepo.AssertNotCalled(t, "Create")
 	mockRepo.AssertExpectations(t)
 }
 
@@ -188,5 +200,89 @@ func TestAuthService_Login_UserNotFound(t *testing.T) {
 	assert.Nil(t, response)
 	assert.Contains(t, err.Error(), "invalid credentials")
 
+	mockRepo.AssertExpectations(t)
+}
+
+func TestAuthService_TelegramRegister_Success(t *testing.T) {
+	mockRepo := new(MockUserRepository)
+	jwtManager := auth.NewJWTManager("test-secret")
+	authService := NewAuthService(mockRepo, jwtManager)
+
+	ctx := context.Background()
+	reqChatID := int64(12345)
+	userName := "username_test"
+	firstName := "test testov"
+
+	mockRepo.On("GetByTelegramID", ctx, reqChatID).Return((*models.User)(nil), nil)
+	mockRepo.On("Create", ctx, mock.AnythingOfType("*models.User")).Run(func(args mock.Arguments) {
+		user := args.Get(1).(*models.User)
+		user.ID = 1
+		user.Role = "admin"
+	}).Return(nil)
+	mockRepo.On("Count", ctx).Return(0, nil)
+	response, err := authService.RegisterOrUpdateTelegramUser(ctx, reqChatID, userName, firstName)
+
+	require.NoError(t, err)
+	assert.NotNil(t, response)
+	assert.NotNil(t, response.ID)
+	assert.Equal(t, "admin", response.Role)
+	assert.Equal(t, int64(1), response.ID)
+
+	mockRepo.AssertExpectations(t)
+}
+
+func TestAuthService_TelegramRegister_CreateError(t *testing.T) {
+	mockRepo := new(MockUserRepository)
+	jwtManager := auth.NewJWTManager("test-secret")
+	authService := NewAuthService(mockRepo, jwtManager)
+
+	ctx := context.Background()
+	reqChatID := int64(12345)
+	userName := "username_test"
+	firstName := "test testov"
+
+	mockRepo.On("GetByTelegramID", ctx, reqChatID).Return((*models.User)(nil), nil)
+	mockRepo.On("Count", ctx).Return(0, nil)
+	mockRepo.On("Create", ctx, mock.AnythingOfType("*models.User")).Return(errors.New("Error"))
+	response, err := authService.RegisterOrUpdateTelegramUser(ctx, reqChatID, userName, firstName)
+
+	require.Error(t, err)
+	assert.Nil(t, response)
+	assert.Contains(t, err.Error(), "error of creating user")
+
+	mockRepo.AssertExpectations(t)
+}
+
+func TestAuthService_TelegramRegister_UserExists(t *testing.T) {
+	mockRepo := new(MockUserRepository)
+	jwtManager := auth.NewJWTManager("test-secret")
+	authService := NewAuthService(mockRepo, jwtManager)
+
+	ctx := context.Background()
+	reqChatID := int64(12345)
+	userName := "username_test"
+	firstName := "test testov"
+
+	returnedChatID := &reqChatID
+	returnedUserName := &userName
+	returnedUser := &models.User{
+		ID:         2,
+		Role:       "user",
+		TgChatID:   returnedChatID,
+		TgUsername: returnedUserName,
+	}
+
+	mockRepo.On("GetByTelegramID", ctx, reqChatID).Return(returnedUser, nil)
+	mockRepo.On("Update", ctx, returnedUser).Return(nil)
+	response, err := authService.RegisterOrUpdateTelegramUser(ctx, reqChatID, userName, firstName)
+
+	require.NoError(t, err)
+	assert.NotNil(t, response)
+	assert.Equal(t, int64(2), response.ID)
+	assert.Equal(t, "user", response.Role)
+	assert.Contains(t, "username_test", *response.TgUsername)
+
+	mockRepo.AssertNotCalled(t, "Count")
+	mockRepo.AssertNotCalled(t, "Create")
 	mockRepo.AssertExpectations(t)
 }

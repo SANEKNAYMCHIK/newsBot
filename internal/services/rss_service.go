@@ -44,7 +44,7 @@ func (s *RssService) FetchAndSaveNews(ctx context.Context) (int, error) {
 	}
 	parsedResults, err := s.parser.ParseURLsWithPool(urls)
 	if err != nil {
-		log.Printf("Parser completed with errors: %w", err)
+		log.Printf("Parser completed with errors: %v", err)
 		// Часть источников не спарсилась, но все равно продолжаем работу дальше
 	}
 	var totalSaved int

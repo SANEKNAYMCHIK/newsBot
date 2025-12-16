@@ -118,7 +118,7 @@ func (p *RssParser) ParseURLsWithPool(urls []string) (map[string][]RssItem, erro
 	var hasErrors bool
 	for val := range res {
 		if val.err != nil {
-			log.Printf("Error parsing\nURL:%s\nError:%w", val.url, val.err)
+			log.Printf("Error parsing\nURL:%s\nError:%v", val.url, val.err)
 			hasErrors = true
 			continue
 		}
