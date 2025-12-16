@@ -7,17 +7,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Getting code from repository
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Setup Go
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
           go-version: '1.24'
 
-      # Caching modules to speed up next launches
       - name: Cache Go modules
         uses: actions/cache@v3
         with:
@@ -26,7 +23,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-
 
-      # Run linter
       - name: Run golangci-lint
         run: |
           # Устанавливаем golangci-lint
@@ -34,10 +30,10 @@ jobs:
           # Запускаем его
           golangci-lint run ./...
 
-      # Run tests
       - name: Run tests
         run: go test -v ./...
 
-      # Check compilation
       - name: Build
-        run: go build -o myapp ./cmd/myapp
+        run: |
+          go build -o app1 ./cmd/api/main.go
+          go build -o app2 ./cmd/tg-bot/main.go
