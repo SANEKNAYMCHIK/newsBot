@@ -42,34 +42,29 @@ Telegram API: данные пользователей, состояния чат
 ```sql
 users (
   id BIGSERIAL PRIMARY KEY,
-  email VARCHAR(255) UNIQUE,          -- максимум 255 символов, уникальный
-  password_hash VARCHAR(255) NOT NULL, -- обязательное поле
-  tg_id BIGINT UNIQUE,                -- уникальный Telegram ID
-  tg_username VARCHAR(255),           -- максимум 255 символов
+  email VARCHAR(255) UNIQUE,
+  password_hash VARCHAR(255) NOT NULL,
+  tg_chat_id BIGINT UNIQUE,
+  tg_username VARCHAR(255),
   tg_first_name VARCHAR(255),
-  role VARCHAR(20) DEFAULT 'user'     -- только 'user' или 'admin'
-  created_at TIMESTAMP DEFAULT NOW()  -- автоматическое заполнение
+  role VARCHAR(20) DEFAULT 'user'
 )
 ```
 **Таблица `categories`**
 ```sql
 categories (
   id SERIAL PRIMARY KEY,
-  name VARCHAR(100) NOT NULL UNIQUE,  -- обязательно, уникально, 100 символов
-  description TEXT,                   -- неограниченный текст
-  created_at TIMESTAMP DEFAULT NOW()
+  name VARCHAR(100) NOT NULL UNIQUE,
 )
 ```
 **Таблица `sources`**
 ```sql
 sources (
   id SERIAL PRIMARY KEY,
-  name VARCHAR(200) NOT NULL,         -- обязательно, 200 символов
-  url VARCHAR(500) NOT NULL UNIQUE,   -- обязательно, уникально, 500 символов
-  category_id INT NOT NULL,           -- внешний ключ, обязательно
-  user_id BIGINT,                     -- кто добавил источник
-  is_active BOOLEAN DEFAULT TRUE,     -- true/false
-  created_at TIMESTAMP DEFAULT NOW(),
+  name VARCHAR(200) NOT NULL,
+  url VARCHAR(500) NOT NULL UNIQUE,
+  category_id INT NOT NULL,           -- внешний ключ
+  is_active BOOLEAN DEFAULT TRUE,
   FOREIGN KEY (category_id) REFERENCES categories(id),
   FOREIGN KEY (user_id) REFERENCES users(id)
 )
@@ -78,15 +73,14 @@ sources (
 ```sql
 news_items (
   id BIGSERIAL PRIMARY KEY,
-  title TEXT NOT NULL,                -- обязательно
-  content TEXT,                       -- может быть NULL
-  url VARCHAR(500) NOT NULL UNIQUE,   -- обязательно, уникально, 500 символов
-  published_at TIMESTAMP NOT NULL,    -- обязательно
-  source_id INT NOT NULL,             -- внешний ключ, обязательно
-  created_at TIMESTAMP DEFAULT NOW(),
-  guid VARCHAR(500),                  -- для дедупликации
+  title TEXT NOT NULL,
+  content TEXT,
+  url VARCHAR(500) NOT NULL UNIQUE,
+  published_at TIMESTAMP NOT NULL,
+  source_id INT NOT NULL,             -- внешний ключ
+  guid VARCHAR(500),
   FOREIGN KEY (source_id) REFERENCES sources(id),
-  UNIQUE(source_id, guid)             -- уникальная комбинация источник+GUID
+  UNIQUE(source_id, guid)
 )
 ```
 **Таблица `user_sources`**
@@ -94,7 +88,6 @@ news_items (
 user_sources (
   user_id BIGINT NOT NULL,            -- внешний ключ
   source_id INT NOT NULL,             -- внешний ключ
-  created_at TIMESTAMP DEFAULT NOW(),
   PRIMARY KEY (user_id, source_id),   -- составной первичный ключ
   FOREIGN KEY (user_id) REFERENCES users(id),
   FOREIGN KEY (source_id) REFERENCES sources(id)
@@ -107,7 +100,6 @@ sources.url - уникальный URL источника\
 news_items.url - уникальный URL новости\
 news_items(source_id, guid) - уникальная комбинация источник+GUID\
 user_sources(user_id, source_id) - уникальная пара пользователь-источник\
-sent_news(user_id, news_id) - уникальная пара пользователь-новость
 # Пользовательские роли
 - user
 - admin
