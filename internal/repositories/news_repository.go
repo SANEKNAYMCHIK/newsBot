@@ -53,7 +53,8 @@ func (r *newsRepository) GetNewsForUser(ctx context.Context, userID int64, page,
         SELECT COUNT(*) 
         FROM news_items ni
         JOIN user_sources us ON ni.source_id = us.source_id
-        WHERE us.user_id = $1
+		JOIN sources s ON ni.source_id = s.id
+        WHERE us.user_id = $1 AND s.is_active = true
     `
 
 	var total int64
@@ -68,7 +69,8 @@ func (r *newsRepository) GetNewsForUser(ctx context.Context, userID int64, page,
         SELECT ni.id, ni.title, ni.content, ni.url, ni.published_at, ni.source_id, ni.guid
         FROM news_items ni
         JOIN user_sources us ON ni.source_id = us.source_id
-        WHERE us.user_id = $1
+		JOIN sources s ON ni.source_id = s.id
+        WHERE us.user_id = $1 AND s.is_active = true
         ORDER BY ni.published_at DESC
         LIMIT $2 OFFSET $3
     `
@@ -94,7 +96,7 @@ func (r *newsRepository) GetNewsForUser(ctx context.Context, userID int64, page,
 			&item.SourceID,
 			&item.GUID,
 		)
-		log.Printf("Item: %v\n", item)
+		// log.Printf("Item: %v\n", item)
 		if err != nil {
 			return nil, 0, err
 		}
@@ -145,64 +147,16 @@ func (r *newsRepository) Count(ctx context.Context) (int64, error) {
 	return count, nil
 }
 
-func (n *newsRepository) GetBySource(ctx context.Context, sourceID int64, offset, limit int) ([]models.NewsItem, int64, error) {
-	query := `
-        SELECT 
-            id, title, content, url, published_at, source_id,
-            COUNT(*) OVER() as total_count
-        FROM news_items 
-        WHERE source_id = $1
-        ORDER BY published_at DESC
-        LIMIT $2 OFFSET $3
-    `
-
-	rows, err := n.pool.Query(ctx, query, sourceID, limit, offset)
-	if err != nil {
-		return nil, 0, fmt.Errorf("failed to get news by source: %w", err)
-	}
-	defer rows.Close()
-
-	var newsItems []models.NewsItem
-	var totalCount int64
-
-	for rows.Next() {
-		var item models.NewsItem
-		var total sql.NullInt64
-		err := rows.Scan(
-			&item.ID,
-			&item.Title,
-			&item.Content,
-			&item.URL,
-			&item.PublishedAt,
-			&item.SourceID,
-			&total,
-		)
-
-		if err != nil {
-			return nil, 0, fmt.Errorf("failed to scan news item: %w", err)
-		}
-		if total.Valid {
-			totalCount = total.Int64
-		}
-		newsItems = append(newsItems, item)
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, 0, fmt.Errorf("error iterating rows: %w", err)
-	}
-
-	return newsItems, totalCount, nil
-}
-
 func (n *newsRepository) GetBySourceWithPagination(ctx context.Context, sourceID int64, offset, limit int) ([]models.NewsItem, int64, error) {
 	query := `
 		SELECT 
-			id, title, content, url, published_at, source_id,
-			COUNT(*) OVER() as total_count
-		FROM news_items 
-		WHERE source_id = $1
-		ORDER BY published_at DESC
-		LIMIT $2 OFFSET $3
+            ni.id, ni.title, ni.content, ni.url, ni.published_at, ni.source_id,
+            COUNT(*) OVER() as total_count
+        FROM news_items ni
+        JOIN sources s ON ni.source_id = s.id
+        WHERE ni.source_id = $1 AND s.is_active = true
+        ORDER BY ni.published_at DESC
+        LIMIT $2 OFFSET $3	
 	`
 
 	rows, err := n.pool.Query(ctx, query, sourceID, limit, offset)

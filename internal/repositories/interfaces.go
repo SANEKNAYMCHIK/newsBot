@@ -26,7 +26,7 @@ type SubscriptionRepository interface {
 type NewsRepository interface {
 	GetNewsForUser(ctx context.Context, userID int64, page, pageSize int) ([]models.NewsItem, int64, error)
 	GetByID(ctx context.Context, id int) (*models.NewsItem, error)
-	GetBySource(ctx context.Context, sourceID int64, offset, limit int) ([]models.NewsItem, int64, error)
+	// GetBySource(ctx context.Context, sourceID int64, offset, limit int) ([]models.NewsItem, int64, error)
 	GetBySourceWithPagination(ctx context.Context, sourceID int64, offset, limit int) ([]models.NewsItem, int64, error)
 	ExistsByGUID(ctx context.Context, sourceID int, guid string) (bool, error)
 	Create(ctx context.Context, news *models.NewsItem) error

@@ -117,7 +117,7 @@ func (s *NewsService) GetNewsBySource(
 	}
 
 	offset := (page - 1) * pageSize
-	newsItems, total, err := s.newsRepo.GetBySource(ctx, sourceID, offset, pageSize)
+	newsItems, total, err := s.newsRepo.GetBySourceWithPagination(ctx, sourceID, offset, pageSize)
 	if err != nil {
 		return nil, err
 	}
