@@ -179,42 +179,42 @@ func (s *BotService) GetNewsForUserWithPagination(ctx context.Context, userID in
 	}, nil
 }
 
-func (s *BotService) GetNewsBySource(ctx context.Context, sourceID, userID int64, limit int) ([]NewsWithSource, error) {
-	return s.GetNewsBySourceLegacy(ctx, sourceID, userID, limit)
-}
+// func (s *BotService) GetNewsBySource(ctx context.Context, sourceID, userID int64, limit int) ([]NewsWithSource, error) {
+// 	return s.GetNewsBySourceLegacy(ctx, sourceID, userID, limit)
+// }
 
-func (s *BotService) GetNewsBySourceLegacy(ctx context.Context, sourceID, userID int64, limit int) ([]NewsWithSource, error) {
-	subscribed, err := s.subscriptionRepo.IsSubscribed(ctx, userID, sourceID)
-	if err != nil || !subscribed {
-		return nil, fmt.Errorf("вы не подписаны на этот источник")
-	}
-	newsItems, _, err := s.newsRepo.GetBySource(ctx, sourceID, 5, limit)
-	if err != nil {
-		return nil, err
-	}
-	source, err := s.sourceRepo.GetByID(ctx, int(sourceID))
-	if err != nil {
-		return nil, err
-	}
+// func (s *BotService) GetNewsBySourceLegacy(ctx context.Context, sourceID, userID int64, limit int) ([]NewsWithSource, error) {
+// 	subscribed, err := s.subscriptionRepo.IsSubscribed(ctx, userID, sourceID)
+// 	if err != nil || !subscribed {
+// 		return nil, fmt.Errorf("вы не подписаны на этот источник")
+// 	}
+// 	newsItems, _, err := s.newsRepo.GetBySource(ctx, sourceID, 5, limit)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	source, err := s.sourceRepo.GetByID(ctx, int(sourceID))
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	var result []NewsWithSource
-	for _, item := range newsItems {
-		content := ""
-		if item.Content != nil {
-			content = *item.Content
-		}
-		result = append(result, NewsWithSource{
-			ID:          item.ID,
-			Title:       item.Title,
-			Content:     content,
-			URL:         item.URL,
-			PublishedAt: item.PublishedAt,
-			SourceID:    item.SourceID,
-			SourceName:  source.Name,
-		})
-	}
-	return result, nil
-}
+// 	var result []NewsWithSource
+// 	for _, item := range newsItems {
+// 		content := ""
+// 		if item.Content != nil {
+// 			content = *item.Content
+// 		}
+// 		result = append(result, NewsWithSource{
+// 			ID:          item.ID,
+// 			Title:       item.Title,
+// 			Content:     content,
+// 			URL:         item.URL,
+// 			PublishedAt: item.PublishedAt,
+// 			SourceID:    item.SourceID,
+// 			SourceName:  source.Name,
+// 		})
+// 	}
+// 	return result, nil
+// }
 
 func (s *BotService) GetNewsBySourceWithPagination(ctx context.Context, sourceID, userID int64, page, pageSize int) (*models.PaginatedResponse[NewsWithSource], error) {
 	subscribed, err := s.subscriptionRepo.IsSubscribed(ctx, userID, sourceID)
