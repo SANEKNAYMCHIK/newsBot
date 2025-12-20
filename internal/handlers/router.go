@@ -1,9 +1,13 @@
 package handlers
 
 import (
+	"log"
+
+	"github.com/SANEKNAYMCHIK/newsBot/internal/config"
 	"github.com/SANEKNAYMCHIK/newsBot/internal/handlers/middleware"
 	"github.com/SANEKNAYMCHIK/newsBot/internal/services"
 	"github.com/SANEKNAYMCHIK/newsBot/pkg/auth"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
@@ -17,9 +21,21 @@ func NewRouter(
 	adminService *services.AdminService,
 	refreshService *services.RefreshService,
 	jwtManager *auth.JWTManager,
+	cfg *config.Config,
 ) *gin.Engine {
 
 	router := gin.Default()
+	// router.Use(middleware.CORS(cfg.AllowedOrigins))
+	log.Println(cfg.AllowedOrigins)
+	corsConfig := cors.Config{
+		AllowOrigins:     cfg.AllowedOrigins,
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization", "Accept", "X-Requested-With"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+		MaxAge:           12 * 3600,
+	}
+	router.Use(cors.New(corsConfig))
 
 	authHandler := NewAuthHandler(authService)
 	userHandler := NewUserHandler(userService)
@@ -57,6 +73,7 @@ func NewRouter(
 			newsGroup.GET("/", newsHandler.GetNews)
 			newsGroup.GET("/:id", newsHandler.GetNewsByID)
 			newsGroup.GET("/sources", newsHandler.GetActiveSources)
+			newsGroup.GET("/all-sources", newsHandler.GetAllSources)
 			newsGroup.POST("/sources", newsHandler.AddSource)
 			newsGroup.GET("/categories", newsHandler.GetCategories)
 			newsGroup.GET("/source/:id", newsHandler.GetNewsBySource)

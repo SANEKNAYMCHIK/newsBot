@@ -26,7 +26,6 @@ type SubscriptionRepository interface {
 type NewsRepository interface {
 	GetNewsForUser(ctx context.Context, userID int64, page, pageSize int) ([]models.NewsItem, int64, error)
 	GetByID(ctx context.Context, id int) (*models.NewsItem, error)
-	// GetBySource(ctx context.Context, sourceID int64, offset, limit int) ([]models.NewsItem, int64, error)
 	GetBySourceWithPagination(ctx context.Context, sourceID int64, offset, limit int) ([]models.NewsItem, int64, error)
 	ExistsByGUID(ctx context.Context, sourceID int, guid string) (bool, error)
 	Create(ctx context.Context, news *models.NewsItem) error
@@ -41,7 +40,7 @@ type SourceRepository interface {
 	Update(ctx context.Context, source *models.Source) error
 	Delete(ctx context.Context, id int) error
 	GetActiveForUser(ctx context.Context, userID int64) ([]models.Source, error)
-	GetAllWithPagination(ctx context.Context, offset, limit int) ([]models.Source, int64, error)
+	GetAllWithPagination(ctx context.Context, page, pageSize int) ([]models.Source, int64, error)
 }
 
 type CategoryRepository interface {

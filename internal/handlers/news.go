@@ -74,6 +74,19 @@ func (n *NewsHandler) GetActiveSources(c *gin.Context) {
 	c.JSON(http.StatusOK, sources)
 }
 
+func (n *NewsHandler) GetAllSources(c *gin.Context) {
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "20"))
+
+	sources, err := n.SourceService.GetAllSources(c.Request.Context(), page, pageSize)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse{Error: err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, sources)
+}
+
 func (n *NewsHandler) GetCategories(c *gin.Context) {
 	categories, err := n.CategoryService.GetCategories(c.Request.Context())
 	if err != nil {

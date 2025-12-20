@@ -20,6 +20,7 @@ import (
 
 func main() {
 	cfg := config.Load()
+	log.Printf("Configuration loaded. HTTPS enabled: %v", cfg.EnableHTTPS)
 	ctx := context.Background()
 	db, err := database.NewPostgres(ctx, cfg.DBUrl)
 	if err != nil {
@@ -67,35 +68,77 @@ func main() {
 	categoryService := services.NewCategoryService(categoryRepo)
 	adminService := services.NewAdminService(userRepo)
 
-	router := handlers.NewRouter(authService, userService, newsService, categoryService, subscriptionService, sourceService, adminService, refreshService, jwtManager)
-
-	srv := &http.Server{
-		Addr:    ":" + cfg.ServerPort,
-		Handler: router,
-	}
+	router := handlers.NewRouter(
+		authService,
+		userService,
+		newsService,
+		categoryService,
+		subscriptionService,
+		sourceService,
+		adminService,
+		refreshService,
+		jwtManager,
+		cfg,
+	)
 
 	// Graceful shutdown
-	go func() {
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("ListenAndServe(): %v", err)
-		}
-	}()
-
-	log.Printf("Server started on port %s", cfg.ServerPort)
-
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 
-	<-quit
-	log.Println("Shutting down server...")
+	if cfg.EnableHTTPS {
+		// Запускаем HTTPS сервер
+		httpsServer := &http.Server{
+			Addr:    ":" + cfg.HTTPSPort,
+			Handler: router,
+		}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
+		log.Printf("Starting HTTPS server on :%s", cfg.HTTPSPort)
 
-	if err := srv.Shutdown(ctx); err != nil {
-		log.Fatal("Server forced to shutdown:", err)
+		go func() {
+			// ListenAndServeTLS для HTTPS
+			if err := httpsServer.ListenAndServeTLS(
+				cfg.HTTPSCertFile,
+				cfg.HTTPSKeyFile,
+			); err != nil && err != http.ErrServerClosed {
+				log.Fatalf("HTTPS ListenAndServeTLS(): %v", err)
+			}
+		}()
+
+		<-quit
+		log.Println("Shutting down servers...")
+
+		// Graceful shutdown
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+
+		if err := httpsServer.Shutdown(shutdownCtx); err != nil {
+			log.Fatal("HTTPS Server forced to shutdown:", err)
+		}
+	} else {
+		// Запускаем обычный HTTP сервер
+		httpServer := &http.Server{
+			Addr:    ":" + cfg.ServerPort,
+			Handler: router,
+		}
+
+		log.Printf("Starting HTTP server on :%s", cfg.ServerPort)
+
+		go func() {
+			if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+				log.Fatalf("HTTP ListenAndServe(): %v", err)
+			}
+		}()
+
+		<-quit
+		log.Println("Shutting down server...")
+
+		// Graceful shutdown
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+
+		if err := httpServer.Shutdown(shutdownCtx); err != nil {
+			log.Fatal("Server forced to shutdown:", err)
+		}
 	}
-
 	log.Println("Server exiting")
-
 }

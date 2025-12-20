@@ -173,7 +173,7 @@ func (r *sourceRepository) GetActiveForUser(ctx context.Context, userID int64) (
 	return sources, nil
 }
 
-func (r *sourceRepository) GetAllWithPagination(ctx context.Context, offset, limit int) ([]models.Source, int64, error) {
+func (r *sourceRepository) GetAllWithPagination(ctx context.Context, page, pageSize int) ([]models.Source, int64, error) {
 	query := `
         SELECT 
             id, name, url, category_id, is_active,
@@ -182,8 +182,9 @@ func (r *sourceRepository) GetAllWithPagination(ctx context.Context, offset, lim
         ORDER BY name
         LIMIT $1 OFFSET $2
     `
+	offset := (page - 1) * pageSize
 
-	rows, err := r.pool.Query(ctx, query, limit, offset)
+	rows, err := r.pool.Query(ctx, query, pageSize, offset)
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to get sources with pagination: %w", err)
 	}
@@ -213,6 +214,8 @@ func (r *sourceRepository) GetAllWithPagination(ctx context.Context, offset, lim
 		}
 
 		sources = append(sources, source)
+		log.Println(sources)
+		log.Println(totalCount)
 	}
 
 	if err := rows.Err(); err != nil {

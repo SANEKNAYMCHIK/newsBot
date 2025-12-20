@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"errors"
+	"log"
 
 	"github.com/SANEKNAYMCHIK/newsBot/internal/models"
 	"github.com/SANEKNAYMCHIK/newsBot/internal/repositories"
@@ -20,12 +21,42 @@ func (s *SourceService) GetActiveSources(ctx context.Context) ([]models.Source, 
 	return s.sourceRepo.GetActive(ctx)
 }
 
+func (s *SourceService) GetAllSources(ctx context.Context, page, pageSize int) (*models.PaginatedResponse[models.Source], error) {
+	if page <= 0 {
+		page = 1
+	}
+	if pageSize <= 0 || pageSize > 100 {
+		pageSize = 20
+	}
+
+	sources, total, err := s.sourceRepo.GetAllWithPagination(ctx, page, pageSize)
+	if err != nil {
+		return nil, err
+	}
+	log.Println(sources)
+
+	totalPages := int(total) / pageSize
+	if int(total)%pageSize > 0 {
+		totalPages++
+	}
+	if page > totalPages && totalPages > 0 {
+		page = totalPages
+	}
+	return &models.PaginatedResponse[models.Source]{
+		Data:       sources,
+		Total:      total,
+		Page:       page,
+		PageSize:   pageSize,
+		TotalPages: totalPages,
+	}, nil
+}
+
 func (s *SourceService) CreateSource(ctx context.Context, req *models.CreateSourceRequest) (*models.Source, error) {
 	source := &models.Source{
 		Name:       req.Name,
 		URL:        req.URL,
 		CategoryID: req.CategoryID,
-		IsActive:   req.IsActive,
+		IsActive:   true,
 	}
 
 	if err := s.sourceRepo.Create(ctx, source); err != nil {
