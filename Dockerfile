@@ -1,4 +1,3 @@
-# Dockerfile
 FROM golang:1.24-alpine AS builder
 
 WORKDIR /app
@@ -17,8 +16,13 @@ RUN apk --no-cache add ca-certificates
 
 WORKDIR /root/
 
-COPY --from=builder /app/main .
+RUN mkdir -p ssl
+COPY --from=builder /app/ssl/* ./ssl/
 
+COPY --from=builder /app/main .
+COPY --from=builder /app/.env .env
+
+EXPOSE 8443
 EXPOSE 8080
 
 CMD ["./main"]
